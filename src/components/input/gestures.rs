@@ -36,7 +36,7 @@ gesture swipe down 3 xdotool key super+Down
 impl Component for GesturenModel {
     type Init = ();
     type Input = GesturenMsg;
-    type Output = ();
+    type Output = String;
     type CommandOutput = GesturenCommandOutput;
 
     view! {
@@ -149,12 +149,12 @@ impl Component for GesturenModel {
     fn update_cmd(
         &mut self,
         msg: GesturenCommandOutput,
-        _sender: ComponentSender<Self>,
+        sender: ComponentSender<Self>,
         _root: &Self::Root,
     ) {
         match msg {
             GesturenCommandOutput::Fehler(e) => {
-                eprintln!("Fehler (Gesten): {e}");
+                let _ = sender.output(e);
             }
         }
     }

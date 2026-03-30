@@ -53,8 +53,8 @@ impl Default for AppConfig {
             kbd_timeout_modus: 0,
             kbd_timeout_akku_netz_index: 0,
             kbd_timeout_nur_akku_index: 0,
-            kbd_aufhellung_schwelle: 12.0,
-            kbd_abdunklung_schwelle: 35.0,
+            kbd_aufhellung_schwelle: default_aufhellung_schwelle(),
+            kbd_abdunklung_schwelle: default_abdunklung_schwelle(),
         }
     }
 }

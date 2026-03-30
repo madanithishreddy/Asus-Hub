@@ -34,7 +34,7 @@ pub enum FanCommandOutput {
 impl Component for FanModel {
     type Init = ();
     type Input = FanMsg;
-    type Output = ();
+    type Output = String;
     type CommandOutput = FanCommandOutput;
 
     view! {
@@ -122,8 +122,14 @@ impl Component for FanModel {
         sender.command(move |out, shutdown| {
             shutdown
                 .register(async move {
-                    match dbus::set_fan_profile(gespeichertes_profil).await {
-                        Ok(p) => out.emit(FanCommandOutput::ProfilGesetzt(p)),
+                    match dbus::get_fan_profile().await {
+                        Ok(aktuell) if aktuell == gespeichertes_profil => {
+                            out.emit(FanCommandOutput::ProfilGesetzt(aktuell));
+                        }
+                        Ok(_) => match dbus::set_fan_profile(gespeichertes_profil).await {
+                            Ok(p) => out.emit(FanCommandOutput::ProfilGesetzt(p)),
+                            Err(e) => out.emit(FanCommandOutput::Fehler(e)),
+                        },
                         Err(e) => out.emit(FanCommandOutput::Fehler(e)),
                     }
                 })
@@ -198,7 +204,7 @@ impl Component for FanModel {
     fn update_cmd(
         &mut self,
         msg: FanCommandOutput,
-        _sender: ComponentSender<Self>,
+        sender: ComponentSender<Self>,
         _root: &Self::Root,
     ) {
         match msg {
@@ -215,7 +221,7 @@ impl Component for FanModel {
                 );
             }
             FanCommandOutput::Fehler(e) => {
-                eprintln!("Fehler: {e}");
+                let _ = sender.output(e);
             }
         }
     }

@@ -30,7 +30,7 @@ pub enum OledCareCommandOutput {
 impl Component for OledCareModel {
     type Init = ();
     type Input = OledCareMsg;
-    type Output = ();
+    type Output = String;
     type CommandOutput = OledCareCommandOutput;
 
     view! {
@@ -178,7 +178,7 @@ impl Component for OledCareModel {
     fn update_cmd(
         &mut self,
         msg: OledCareCommandOutput,
-        _sender: ComponentSender<Self>,
+        sender: ComponentSender<Self>,
         _root: &Self::Root,
     ) {
         match msg {
@@ -201,7 +201,7 @@ impl Component for OledCareModel {
                 );
             }
             OledCareCommandOutput::Fehler(e) => {
-                eprintln!("Fehler: {e}");
+                let _ = sender.output(e);
             }
         }
     }

@@ -28,7 +28,7 @@ pub enum BatteryCommandOutput {
 impl Component for BatteryModel {
     type Init = ();
     type Input = BatteryMsg;
-    type Output = ();
+    type Output = String;
     type CommandOutput = BatteryCommandOutput;
 
     view! {
@@ -176,7 +176,7 @@ impl Component for BatteryModel {
                 eprintln!("Ladelimit auf {val}% gesetzt");
             }
             BatteryCommandOutput::Fehler(e) => {
-                eprintln!("Fehler: {e}");
+                let _ = sender.output(e);
             }
             BatteryCommandOutput::TimerAbgelaufen => {
                 self.volle_aufladung_aktiv = false;

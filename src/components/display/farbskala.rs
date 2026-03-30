@@ -51,7 +51,7 @@ pub enum FarbskalaCommandOutput {
 impl Component for FarbskalaModel {
     type Init = ();
     type Input = FarbskalaMsg;
-    type Output = ();
+    type Output = String;
     type CommandOutput = FarbskalaCommandOutput;
 
     view! {
@@ -139,7 +139,7 @@ impl Component for FarbskalaModel {
                 eprintln!("Farbskala: Profil-Index {} angewendet", index);
             }
             FarbskalaCommandOutput::Fehler(e) => {
-                eprintln!("Fehler: {e}");
+                let _ = sender.output(e);
             }
         }
     }

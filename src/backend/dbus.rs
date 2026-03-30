@@ -33,13 +33,20 @@ impl From<u32> for FanProfile {
     }
 }
 
-async fn platform_proxy() -> Result<PlatformProxy<'static>, String> {
-    let conn = zbus::Connection::system()
+static PLATFORM_PROXY: tokio::sync::OnceCell<PlatformProxy<'static>> =
+    tokio::sync::OnceCell::const_new();
+
+async fn platform_proxy() -> Result<&'static PlatformProxy<'static>, String> {
+    PLATFORM_PROXY
+        .get_or_try_init(|| async {
+            let conn = zbus::Connection::system()
+                .await
+                .map_err(|e| format!("D-Bus-Verbindung fehlgeschlagen: {e}"))?;
+            PlatformProxy::new(&conn)
+                .await
+                .map_err(|e| format!("Proxy-Erstellung fehlgeschlagen: {e}"))
+        })
         .await
-        .map_err(|e| format!("D-Bus-Verbindung fehlgeschlagen: {e}"))?;
-    PlatformProxy::new(&conn)
-        .await
-        .map_err(|e| format!("Proxy-Erstellung fehlgeschlagen: {e}"))
 }
 
 pub async fn get_charge_limit() -> Result<u8, String> {
@@ -57,6 +64,15 @@ pub async fn set_charge_limit(value: u8) -> Result<u8, String> {
         .await
         .map_err(|e| format!("Ladelimit setzen fehlgeschlagen: {e}"))?;
     Ok(value)
+}
+
+pub async fn get_fan_profile() -> Result<FanProfile, String> {
+    let proxy = platform_proxy().await?;
+    proxy
+        .platform_profile()
+        .await
+        .map(FanProfile::from)
+        .map_err(|e| format!("Lüfterprofil lesen fehlgeschlagen: {e}"))
 }
 
 pub async fn set_fan_profile(profile: FanProfile) -> Result<FanProfile, String> {

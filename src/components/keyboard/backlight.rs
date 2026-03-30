@@ -5,6 +5,7 @@ use relm4::adw::prelude::*;
 use relm4::prelude::*;
 use tokio::sync::watch;
 
+use crate::services::commands::run_command_blocking;
 use crate::services::config::AppConfig;
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -54,7 +55,7 @@ pub enum AutoBeleuchtungOutput {
 impl Component for AutoBeleuchtungModel {
     type Init = ();
     type Input = AutoBeleuchtungMsg;
-    type Output = ();
+    type Output = String;
     type CommandOutput = AutoBeleuchtungOutput;
 
     view! {
@@ -198,11 +199,13 @@ impl Component for AutoBeleuchtungModel {
     fn update_cmd(
         &mut self,
         msg: AutoBeleuchtungOutput,
-        _sender: ComponentSender<Self>,
+        sender: ComponentSender<Self>,
         _root: &Self::Root,
     ) {
         match msg {
-            AutoBeleuchtungOutput::Fehler(e) => eprintln!("AutoBeleuchtung Fehler: {e}"),
+            AutoBeleuchtungOutput::Fehler(e) => {
+                let _ = sender.output(e);
+            }
         }
     }
 }
@@ -232,40 +235,21 @@ impl AutoBeleuchtungModel {
 }
 
 async fn kbd_helligkeit_setzen(wert: i32) -> bool {
-    let wert_str = wert.to_string();
-    let ergebnis = tokio::task::spawn_blocking(move || {
-        std::process::Command::new("busctl")
-            .args([
-                "call",
-                "--system",
-                "org.freedesktop.UPower",
-                "/org/freedesktop/UPower/KbdBacklight",
-                "org.freedesktop.UPower.KbdBacklight",
-                "SetBrightness",
-                "i",
-                &wert_str,
-            ])
-            .status()
-    })
-    .await;
-    match ergebnis {
-        Ok(Ok(s)) if s.success() => true,
-        Ok(Ok(s)) => {
-            eprintln!(
-                "Helligkeit {wert} setzen fehlgeschlagen (Exit {})",
-                s.code().unwrap_or(-1)
-            );
-            false
-        }
-        Ok(Err(e)) => {
-            eprintln!("Helligkeit {wert} starten fehlgeschlagen: {e}");
-            false
-        }
-        Err(e) => {
-            eprintln!("spawn_blocking fehlgeschlagen: {e}");
-            false
-        }
-    }
+    run_command_blocking(
+        "busctl",
+        &[
+            "call",
+            "--system",
+            "org.freedesktop.UPower",
+            "/org/freedesktop/UPower/KbdBacklight",
+            "org.freedesktop.UPower.KbdBacklight",
+            "SetBrightness",
+            "i",
+            &wert.to_string(),
+        ],
+    )
+    .await
+    .is_ok()
 }
 
 async fn lichtsensor_logik(
@@ -415,6 +399,22 @@ impl From<u32> for TimeoutModus {
 
 const TIMEOUT_SEKUNDEN: [u32; 3] = [60, 120, 300];
 
+fn busctl_brightness_cmd(wert: i32, nur_akku: bool) -> String {
+    let base = format!(
+        "busctl call --system org.freedesktop.UPower \
+         /org/freedesktop/UPower/KbdBacklight \
+         org.freedesktop.UPower.KbdBacklight SetBrightness i {wert}"
+    );
+    if nur_akku {
+        format!(
+            "if [ \"$(cat /sys/class/power_supply/*/online | head -n1)\" = \"0\" ]; \
+             then {base}; fi"
+        )
+    } else {
+        base
+    }
+}
+
 pub struct RuhezustandModel {
     timeout_modus: TimeoutModus,
     check_nichts: gtk::CheckButton,
@@ -433,7 +433,6 @@ pub enum RuhezustandMsg {
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub enum RuhezustandOutput {
     Fehler(String),
 }
@@ -442,7 +441,7 @@ pub enum RuhezustandOutput {
 impl Component for RuhezustandModel {
     type Init = ();
     type Input = RuhezustandMsg;
-    type Output = ();
+    type Output = String;
     type CommandOutput = RuhezustandOutput;
 
     view! {
@@ -545,7 +544,7 @@ impl Component for RuhezustandModel {
         };
 
         let widgets = view_output!();
-        model.timeout_schreiben(modus, sender.clone());
+        model.timeout_schreiben(modus, &sender);
         ComponentParts { model, widgets }
     }
 
@@ -554,18 +553,18 @@ impl Component for RuhezustandModel {
             RuhezustandMsg::ModusWechseln(modus) => {
                 self.timeout_modus = modus;
                 AppConfig::update(|c| c.kbd_timeout_modus = modus as u32);
-                self.timeout_schreiben(modus, sender);
+                self.timeout_schreiben(modus, &sender);
             }
             RuhezustandMsg::AkkuNetzZeitGeaendert(index) => {
                 AppConfig::update(|c| c.kbd_timeout_akku_netz_index = index);
                 if self.timeout_modus == TimeoutModus::AkkuUndNetz {
-                    self.timeout_schreiben(TimeoutModus::AkkuUndNetz, sender);
+                    self.timeout_schreiben(TimeoutModus::AkkuUndNetz, &sender);
                 }
             }
             RuhezustandMsg::NurAkkuZeitGeaendert(index) => {
                 AppConfig::update(|c| c.kbd_timeout_nur_akku_index = index);
                 if self.timeout_modus == TimeoutModus::NurAkku {
-                    self.timeout_schreiben(TimeoutModus::NurAkku, sender);
+                    self.timeout_schreiben(TimeoutModus::NurAkku, &sender);
                 }
             }
         }
@@ -574,11 +573,13 @@ impl Component for RuhezustandModel {
     fn update_cmd(
         &mut self,
         msg: RuhezustandOutput,
-        _sender: ComponentSender<Self>,
+        sender: ComponentSender<Self>,
         _root: &Self::Root,
     ) {
         match msg {
-            RuhezustandOutput::Fehler(e) => eprintln!("Ruhezustand Fehler: {e}"),
+            RuhezustandOutput::Fehler(e) => {
+                let _ = sender.output(e);
+            }
         }
     }
 }
@@ -587,7 +588,7 @@ impl RuhezustandModel {
     fn timeout_schreiben(
         &mut self,
         modus: TimeoutModus,
-        _sender: ComponentSender<RuhezustandModel>,
+        sender: &ComponentSender<RuhezustandModel>,
     ) {
         if let Some(task) = self.swayidle_task.take() {
             task.abort();
@@ -609,36 +610,12 @@ impl RuhezustandModel {
             }
         };
 
-        let timeout_cmd = match modus {
-            TimeoutModus::NurAkku => {
-                "if [ \"$(cat /sys/class/power_supply/*/online | head -n1)\" = \"0\" ]; \
-                 then busctl call --system org.freedesktop.UPower \
-                 /org/freedesktop/UPower/KbdBacklight \
-                 org.freedesktop.UPower.KbdBacklight SetBrightness i 0; fi"
-                    .to_string()
-            }
-            _ => "busctl call --system org.freedesktop.UPower \
-                  /org/freedesktop/UPower/KbdBacklight \
-                  org.freedesktop.UPower.KbdBacklight SetBrightness i 0"
-                .to_string(),
-        };
-
-        let resume_cmd = match modus {
-            TimeoutModus::NurAkku => {
-                "if [ \"$(cat /sys/class/power_supply/*/online | head -n1)\" = \"0\" ]; \
-                 then busctl call --system org.freedesktop.UPower \
-                 /org/freedesktop/UPower/KbdBacklight \
-                 org.freedesktop.UPower.KbdBacklight SetBrightness i 3; fi"
-                    .to_string()
-            }
-            _ => "busctl call --system org.freedesktop.UPower \
-                  /org/freedesktop/UPower/KbdBacklight \
-                  org.freedesktop.UPower.KbdBacklight SetBrightness i 3"
-                .to_string(),
-        };
-
+        let nur_akku = modus == TimeoutModus::NurAkku;
+        let timeout_cmd = busctl_brightness_cmd(0, nur_akku);
+        let resume_cmd = busctl_brightness_cmd(3, nur_akku);
         let sekunden_str = sekunden.to_string();
 
+        let cmd_sender = sender.command_sender().clone();
         let handle = tokio::spawn(async move {
             let mut child = match tokio::process::Command::new("swayidle")
                 .kill_on_drop(true)
@@ -654,12 +631,16 @@ impl RuhezustandModel {
             {
                 Ok(c) => c,
                 Err(e) => {
-                    eprintln!("swayidle starten fehlgeschlagen: {e}");
+                    cmd_sender.emit(RuhezustandOutput::Fehler(format!(
+                        "swayidle starten fehlgeschlagen: {e}"
+                    )));
                     return;
                 }
             };
             if let Err(e) = child.wait().await {
-                eprintln!("swayidle warten fehlgeschlagen: {e}");
+                cmd_sender.emit(RuhezustandOutput::Fehler(format!(
+                    "swayidle warten fehlgeschlagen: {e}"
+                )));
             }
         });
 

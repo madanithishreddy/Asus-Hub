@@ -28,7 +28,7 @@ pub enum FnKeyCommandOutput {
 impl Component for FnKeyModel {
     type Init = ();
     type Input = FnKeyMsg;
-    type Output = ();
+    type Output = String;
     type CommandOutput = FnKeyCommandOutput;
 
     view! {
@@ -149,7 +149,7 @@ impl Component for FnKeyModel {
     fn update_cmd(
         &mut self,
         msg: FnKeyCommandOutput,
-        _sender: ComponentSender<Self>,
+        sender: ComponentSender<Self>,
         _root: &Self::Root,
     ) {
         match msg {
@@ -161,9 +161,9 @@ impl Component for FnKeyModel {
                 ));
             }
             FnKeyCommandOutput::Fehler(e) => {
-                eprintln!("Fehler (FnKey): {e}");
                 self.zeile_hinweis
                     .set_subtitle(&format!("Fehler beim Speichern: {e}"));
+                let _ = sender.output(e);
             }
         }
     }
