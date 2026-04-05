@@ -18,12 +18,18 @@ impl Tray for AsusTray {
     }
 
     fn icon_pixmap(&self) -> Vec<Icon> {
-        // 16x16 solid blue square, ARGB32 big-endian: [A, R, G, B]
-        let pixel: [u8; 4] = [0xFF, 0x00, 0x78, 0xD7];
-        let data: Vec<u8> = pixel.iter().cloned().cycle().take(16 * 16 * 4).collect();
+        let png_bytes = include_bytes!("../assets/trayicon.png");
+        let img = image::load_from_memory(png_bytes)
+            .expect("Failed to load tray icon")
+            .into_rgba8();
+        let (width, height) = img.dimensions();
+        let data: Vec<u8> = img
+            .pixels()
+            .flat_map(|p| [p[3], p[0], p[1], p[2]])
+            .collect();
         vec![Icon {
-            width: 16,
-            height: 16,
+            width: width as i32,
+            height: height as i32,
             data,
         }]
     }
