@@ -1,3 +1,19 @@
+// Asus Hub - Unofficial Control Center for Asus Laptops
+// Copyright (C) 2026 Guido Philipp
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see https://www.gnu.org/licenses/.
+
 use gtk4 as gtk;
 use relm4::adw;
 use relm4::adw::prelude::*;
@@ -141,8 +157,7 @@ impl Component for RuhezustandModel {
         let time_options = gtk::StringList::new(&[&t1, &t2, &t5]);
         let dropdown_battery_and_ac =
             gtk::DropDown::new(Some(time_options.clone()), gtk::Expression::NONE);
-        let dropdown_battery_only =
-            gtk::DropDown::new(Some(time_options), gtk::Expression::NONE);
+        let dropdown_battery_only = gtk::DropDown::new(Some(time_options), gtk::Expression::NONE);
         dropdown_battery_and_ac.set_selected(config.kbd_timeout_akku_netz_index);
         dropdown_battery_only.set_selected(config.kbd_timeout_nur_akku_index);
 
@@ -228,11 +243,7 @@ impl RuhezustandModel {
     ///
     /// Aborts any previously running `swayidle` task before spawning a new one.
     /// Does nothing (and kills the old task) when `mode` is [`TimeoutMode::Never`].
-    fn apply_timeout(
-        &mut self,
-        mode: TimeoutMode,
-        sender: &ComponentSender<RuhezustandModel>,
-    ) {
+    fn apply_timeout(&mut self, mode: TimeoutMode, sender: &ComponentSender<RuhezustandModel>) {
         if let Some(task) = self.swayidle_task.take() {
             task.abort();
         }
