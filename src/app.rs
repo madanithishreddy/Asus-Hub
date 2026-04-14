@@ -266,7 +266,11 @@ impl SimpleComponent for AppModel {
         let lang_row = adw::ActionRow::new();
         lang_row.set_title(&t!("language_title"));
 
-        const SUPPORTED_LANGS: &[(&str, &str)] = &[("English", "en"), ("Deutsch", "de"), ("Português Brasileiro", "pt-br")];
+        const SUPPORTED_LANGS: &[(&str, &str)] = &[
+            ("English", "en"),
+            ("Deutsch", "de"),
+            ("Português Brasileiro", "pt-br"),
+        ];
 
         let display_names: Vec<&str> = SUPPORTED_LANGS.iter().map(|(name, _)| *name).collect();
         let lang_dropdown = gtk4::DropDown::from_strings(&display_names);
@@ -438,16 +442,13 @@ impl SimpleComponent for AppModel {
             bottom_box.set_margin_start(10);
             bottom_box.set_margin_end(10);
 
-            let svg_bytes = include_bytes!("../assets/img/github.svg");
             let github_btn = gtk4::Button::new();
             github_btn.add_css_class("flat");
             github_btn.set_tooltip_text(Some("GitHub"));
-            let glib_bytes = gtk4::glib::Bytes::from_static(svg_bytes);
-            if let Ok(texture) = gtk4::gdk::Texture::from_bytes(&glib_bytes) {
-                let gh_icon = gtk4::Image::from_paintable(Some(&texture));
-                gh_icon.set_pixel_size(16);
-                github_btn.set_child(Some(&gh_icon));
-            }
+            let gh_icon = gtk4::Image::from_resource("/de/guido/asus_hub/github.svg");
+            gh_icon.set_pixel_size(16);
+            github_btn.set_child(Some(&gh_icon));
+            github_btn.set_valign(gtk4::Align::Center);
             github_btn.connect_clicked(|_| {
                 let _ = Command::new("xdg-open")
                     .arg("https://github.com/Traciges")
@@ -458,12 +459,14 @@ impl SimpleComponent for AppModel {
             let made_by_label = gtk4::Label::new(Some("Made by Guido"));
             made_by_label.add_css_class("dim-label");
             made_by_label.set_margin_start(6);
+            made_by_label.set_valign(gtk4::Align::Center);
 
             let spacer = gtk4::Box::new(gtk4::Orientation::Horizontal, 0);
             spacer.set_hexpand(true);
 
             let version_label = gtk4::Label::new(Some(concat!("v", env!("CARGO_PKG_VERSION"))));
             version_label.add_css_class("dim-label");
+            version_label.set_valign(gtk4::Align::Center);
 
             bottom_box.append(&github_btn);
             bottom_box.append(&made_by_label);

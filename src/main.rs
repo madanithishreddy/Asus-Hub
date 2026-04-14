@@ -36,10 +36,16 @@ fn load_css() {
             &provider,
             gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
+
+        let settings = gtk4::Settings::for_display(&display);
+        settings.set_gtk_icon_theme_name(Some("Adwaita"));
     }
 }
 
 fn main() {
+    gtk4::gio::resources_register_include!("compiled.gresource")
+        .expect("Failed to register resources");
+
     tracing_subscriber::fmt::init();
     let config = services::config::AppConfig::load();
     rust_i18n::set_locale(&config.language);

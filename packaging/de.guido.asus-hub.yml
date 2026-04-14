@@ -36,7 +36,7 @@ modules:
     buildsystem: meson
     sources:
       - type: git
-        url: https://gitlab.gnome.org/GNOME/adwaita-icon-theme.git
+        url: https://github.com/GNOME/adwaita-icon-theme.git/
         tag: "50.0"
 
   - name: asus-hub
