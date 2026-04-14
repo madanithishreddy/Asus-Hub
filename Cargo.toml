@@ -37,7 +37,7 @@ section = "utils"
 assets = [
     ["target/release/asus-hub", "usr/bin/asus-hub", "755"],
     ["packaging/io.github.traciges.asus-hub.desktop", "usr/share/applications/", "644"],
-    ["packaging/io.github.traciges.asus-hub.xml", "usr/share/metainfo/", "644"],
+    ["packaging/io.github.traciges.asus-hub.metainfo.xml", "usr/share/metainfo/", "644"],
     ["assets/trayicon.png", "usr/share/icons/hicolor/128x128/apps/io.github.traciges.asus-hub.png", "644"],
 ]
 
@@ -45,7 +45,7 @@ assets = [
 assets = [
     { source = "target/release/asus-hub", dest = "/usr/bin/asus-hub", mode = "755" },
     { source = "packaging/io.github.traciges.asus-hub.desktop", dest = "/usr/share/applications/io.github.traciges.asus-hub.desktop", mode = "644" },
-    { source = "packaging/io.github.traciges.asus-hub.xml", dest = "/usr/share/metainfo/io.github.traciges.asus-hub.xml", mode = "644" },
+    { source = "packaging/io.github.traciges.asus-hub.metainfo.xml", dest = "/usr/share/metainfo/io.github.traciges.asus-hub.metainfo.xml", mode = "644" },
     { source = "assets/trayicon.png", dest = "/usr/share/icons/hicolor/128x128/apps/io.github.traciges.asus-hub.png", mode = "644" }
 ]
 
